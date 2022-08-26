@@ -28,6 +28,8 @@ import com.example.busschedule.databinding.FullScheduleFragmentBinding
 import com.example.busschedule.viewmodels.BusScheduleViewModel
 import com.example.busschedule.viewmodels.BusScheduleViewModelFactory
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 
 class FullScheduleFragment : Fragment() {
 
@@ -36,6 +38,13 @@ class FullScheduleFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var recyclerView: RecyclerView
+
+    private val viewModel: BusScheduleViewModel by activityViewModels {
+        BusScheduleViewModelFactory(
+            (activity?.application as BusScheduleApplication).database.scheduleDao()
+        )
+    }
+
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -51,46 +60,28 @@ class FullScheduleFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         recyclerView = binding.recyclerView
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
+
+        val busStopAdapter = BusStopAdapter {
+            val action =
+                FullScheduleFragmentDirections.actionFullScheduleFragmentToStopScheduleFragment(
+                    stopName = it.stopName
+                )
+            view.findNavController().navigate(action)
+        }
+        recyclerView.adapter = busStopAdapter
+
+        // submitList() is a call that accesses the database. To prevent the
+        // call from potentially locking the UI, you should use a
+        // coroutine scope to launch the function. Using GlobalScope is not
+        // best practice, and in the next step we'll see how to improve this.
+        GlobalScope.launch(Dispatchers.IO) {
+            busStopAdapter.submitList(viewModel.fullSchedule())
+        }
+
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
     }
-
-    private val viewModel: BusScheduleViewModel by activityViewModels {
-        BusScheduleViewModelFactory(
-            (activity?.application as BusScheduleApplication).database.scheduleDao()
-        )
-
-
-    val busStopAdapter = BusStopAdapter({
-        val action =
-            FullScheduleFragmentDirections.actionFullScheduleFragmentToStopScheduleFragment(
-                stopName = it.stopName
-            )
-        view.findNavController().navigate(action)
-    })
-    recyclerView.adapter = busStopAdapter
-
-
-    // submitList() is a call that accesses the database. To prevent the
-// call from potentially locking the UI, you should use a
-// coroutine scope to launch the function. Using GlobalScope is not
-// best practice, and in the next step we'll see how to improve this.
-    GlobalScope.launch(Dispatchers.IO) {
-        busStopAdapter.submitList(viewModel.fullSchedule())
-    }
-
-        recyclerView = binding.recyclerView
-        recyclerView.layoutManager = LinearLayoutManager(requireContext())
-        val busStopAdapter = BusStopAdapter({})
-        recyclerView.adapter = busStopAdapter
-// submitList() is a call that accesses the database. To prevent the
-// call from potentially locking the UI, you should use a
-// coroutine scope to launch the function. Using GlobalScope is not
-// best practice, and in the next step we'll see how to improve this.
-        GlobalScope.launch(Dispatchers.IO) {
-            busStopAdapter.submitList(viewModel.scheduleForStopName(stopName))
-        }
 }
