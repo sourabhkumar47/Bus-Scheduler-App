@@ -2,12 +2,17 @@ package com.example.busschedule.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.example.busschedule.database.schedule.Schedule
 import com.example.busschedule.database.schedule.ScheduleDao
+import kotlinx.coroutines.flow.Flow
 
-//If you instantiate it directly in one of your fragments, then your fragment object will have
-// to handle everything, including all the memory management
-//so that your view model can be lifecycle aware without your fragment having to handle
-// this directly.
+class BusScheduleViewModel(private val scheduleDao: ScheduleDao) : ViewModel() {
+
+    fun fullSchedule(): Flow<List<Schedule>> = scheduleDao.getAll()
+
+    fun scheduleForStopName(name: String): Flow<List<Schedule>> = scheduleDao.getByStopName(name)
+}
+
 class BusScheduleViewModelFactory(
     private val scheduleDao: ScheduleDao
 ) : ViewModelProvider.Factory {
@@ -18,5 +23,4 @@ class BusScheduleViewModelFactory(
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
-
 }
